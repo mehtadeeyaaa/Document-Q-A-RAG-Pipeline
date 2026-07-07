@@ -81,4 +81,14 @@ def run_evaluation(doc_id: str = "deeya_plan"):
 
 
 if __name__ == "__main__":
-    run_evaluation()
+    print("\n### RECURSIVE CHUNKING ###")
+    recursive_rate = run_evaluation(doc_id="deeya_plan")
+
+    print("\n### FIXED-SIZE CHUNKING ###")
+    fixed_rate = run_evaluation(doc_id="deeya_plan_fixed")
+
+    print(f"\n{'='*60}")
+    print(f"COMPARISON")
+    print(f"{'='*60}")
+    print(f"Recursive chunking hit rate: {recursive_rate:.0%}")
+    print(f"Fixed-size chunking hit rate: {fixed_rate:.0%}")
