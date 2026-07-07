@@ -15,6 +15,37 @@ from app.config import (
 )
 from app.ingest import get_embedding_model, get_chroma_collection
 
+def stream_answer(question: str, doc_id: str = None, top_k: int = TOP_K):
+    """
+    Same as generate_answer, but yields answer tokens progressively
+    instead of returning the full answer at once.
+    """
+    chunks = retrieve_chunks(question, doc_id=doc_id, top_k=top_k)
+
+    if not chunks:
+        yield {"type": "error", "content": "No relevant context found for this question."}
+        return
+
+    prompt = build_prompt(question, chunks)
+
+    client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+
+    stream = client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        stream=True,
+    )
+
+    for event in stream:
+        delta = event.choices[0].delta.content
+        if delta:
+            yield {"type": "token", "content": delta}
+
+    sources = [
+        {"source": c["source"], "page": c["page"], "chunk_id": c["chunk_id"]}
+        for c in chunks
+    ]
+    yield {"type": "sources", "content": sources}
 
 def retrieve_chunks(question: str, doc_id: str = None, top_k: int = TOP_K) -> list[dict]:
     """
